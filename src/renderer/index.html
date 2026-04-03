@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: file:;"
+  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TANE Energia e Gestão</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <section id="login-screen" class="login-screen">
+    <div class="login-card">
+      <div class="login-brand">tane</div>
+      <h1>Acesso ao sistema</h1>
+      <p>Entre com seu usuário e senha para acessar os clientes, lançamentos e impressão.</p>
+      <form id="login-form" class="login-form">
+        <div class="form-group">
+          <label for="login-username">Usuário</label>
+          <input id="login-username" type="text" autocomplete="username" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Senha</label>
+          <input id="login-password" type="password" autocomplete="current-password" required />
+        </div>
+        <div id="login-message" class="auth-message hidden"></div>
+        <button type="submit" class="primary-btn full-width">Entrar</button>
+      </form>
+      <div class="login-helper">Primeiro acesso padrão: admin / admin123</div>
+    </div>
+  </section>
+
+  <div id="app-shell" class="app-wrapper hidden">
+    <div class="topbar">
+      <div class="brand-block">
+        <div class="brand-title">TANE Energia e Gestão</div>
+        <div class="brand-subtitle">Clientes, lançamentos mensais e impressão</div>
+      </div>
+      <div class="topbar-actions">
+        <button id="go-clients-btn" class="secondary-btn">Clientes</button>
+        <button id="go-preview-btn" class="secondary-btn">Impressão</button>
+        <button id="go-users-btn" class="secondary-btn hidden">Usuários</button>
+        <button id="change-password-btn" class="secondary-btn">Minha senha</button>
+        <div class="session-pill">
+          <strong id="session-user-name">-</strong>
+          <span id="session-user-role">-</span>
+        </div>
+        <button id="logout-btn" class="danger-btn">Sair</button>
+      </div>
+    </div>
+
+    <main class="page-shell">
+      <section id="clients-screen" class="screen active">
+        <div class="screen-header">
+          <div>
+            <h1>Clientes</h1>
+            <p>Escolha um cliente para abrir seus lançamentos mensais.</p>
+          </div>
+          <div class="screen-header-actions">
+            <button id="export-xlsx-btn" class="secondary-btn">Exportar XLSX</button>
+            <button id="toggle-multi-select-btn" class="secondary-btn">Selecionar vários</button>
+            <button id="remove-selected-btn" class="danger-btn" disabled>Remover selecionados</button>
+            <button id="new-client-btn" class="primary-btn">+ Novo cliente</button>
+          </div>
+        </div>
+
+        <div id="selection-counter" class="selection-counter hidden">0 clientes selecionados</div>
+
+        <div class="clients-layout">
+          <div>
+            <div id="client-list" class="client-list"></div>
+          </div>
+
+          <aside class="side-summary-card">
+            <div class="side-summary-title">Resumo</div>
+            <div class="summary-metric">
+              <span>Clientes cadastrados</span>
+              <strong id="clients-count">0</strong>
+            </div>
+            <div class="summary-metric">
+              <span>Lançamentos cadastrados</span>
+              <strong id="invoices-count">0</strong>
+            </div>
+            <div class="summary-helper">
+              Cada cliente pode ter um lançamento por competência. Ao salvar o mesmo mês, o lançamento é atualizado.
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="client-form-screen" class="screen hidden">
+        <div class="screen-header compact">
+          <div class="panel-header-left">
+            <button data-go="clients-screen" class="icon-btn" title="Voltar" aria-label="Voltar">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+            </button>
+            <h2 id="client-form-title">Novo cliente</h2>
+          </div>
+        </div>
+
+        <div class="panel">
+          <form id="client-form" class="client-form">
+            <input type="hidden" id="client-id" />
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="client-name">Nome do cliente</label>
+                <input id="client-name" type="text" required />
+              </div>
+              <div class="form-group">
+                <label for="client-installation">Unidade consumidora</label>
+                <input id="client-installation" type="text" />
+              </div>
+              <div class="form-group">
+                <label for="client-document">Documento</label>
+                <input id="client-document" type="text" />
+              </div>
+              <div class="form-group">
+                <label for="client-distributor">Distribuidora</label>
+                <input id="client-distributor" type="text" value="ENEL" />
+              </div>
+              <div class="form-group form-group-full">
+                <label for="client-address">Endereço</label>
+                <input id="client-address" type="text" />
+              </div>
+              <div class="form-group form-group-full">
+                <label for="client-message">Mensagem padrão no template</label>
+                <textarea id="client-message" rows="4"></textarea>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" id="save-client-btn" class="primary-btn">Salvar cliente</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="client-detail-screen" class="screen hidden">
+        <div class="screen-header compact">
+          <div class="panel-header-left">
+            <button data-go="clients-screen" class="icon-btn" title="Voltar" aria-label="Voltar">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+            </button>
+            <div>
+              <h2 id="detail-client-name">Cliente</h2>
+              <p id="detail-client-subtitle" class="header-subtitle">Gerencie os lançamentos mensais.</p>
+            </div>
+          </div>
+          <div class="panel-header-actions">
+            <button id="new-invoice-btn" class="primary-btn">+ Novo lançamento</button>
+            <button id="edit-client-btn" class="icon-btn blue" title="Editar cliente" aria-label="Editar cliente">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM14 6l4 4" /></svg>
+            </button>
+            <button id="delete-client-btn" class="icon-btn red" title="Remover cliente" aria-label="Remover cliente">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12M9 7V5h6v2M8 7l1 12h6l1-12M10 11v5M14 11v5" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="detail-layout">
+          <div class="panel">
+            <div class="client-data-grid">
+              <div><span>UC</span><strong id="detail-installation">-</strong></div>
+              <div><span>Documento</span><strong id="detail-document">-</strong></div>
+              <div><span>Distribuidora</span><strong id="detail-distributor">-</strong></div>
+              <div><span>Endereço</span><strong id="detail-address">-</strong></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="section-title-row">
+              <h3>Histórico de lançamentos</h3>
+            </div>
+            <div id="invoice-list" class="invoice-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="invoice-form-screen" class="screen hidden">
+        <div class="screen-header compact">
+          <div class="panel-header-left">
+            <button data-go="client-detail-screen" class="icon-btn" title="Voltar" aria-label="Voltar">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+            </button>
+            <h2 id="invoice-form-title">Novo lançamento</h2>
+          </div>
+          <div>
+            <button id="invoice-preview-btn" class="secondary-btn">Ver impressão</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <form id="invoice-form" class="client-form">
+            <input type="hidden" id="invoice-id" />
+
+            <div class="form-grid invoice-form-grid">
+              <div class="form-group">
+                <label for="invoice-competence">Competência</label>
+                <input id="invoice-competence" type="text" inputmode="numeric" placeholder="MM/AAAA" required />
+              </div>
+              <div class="form-group">
+                <label for="invoice-due-date">Vencimento</label>
+                <input id="invoice-due-date" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" />
+              </div>
+              <div class="form-group">
+                <label for="invoice-period-start">Período inicial</label>
+                <input id="invoice-period-start" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" />
+              </div>
+              <div class="form-group">
+                <label for="invoice-period-end">Período final</label>
+                <input id="invoice-period-end" type="text" inputmode="numeric" placeholder="DD/MM/AAAA" />
+              </div>
+              <div class="form-group">
+                <label for="invoice-original-total">Total sem plano (R$)</label>
+                <input id="invoice-original-total" type="number" step="0.01" value="0" />
+              </div>
+              <div class="form-group">
+                <label for="invoice-tane-total">Total a pagar TANE (R$)</label>
+                <input id="invoice-tane-total" type="number" step="0.01" value="0" />
+              </div>
+              <div class="form-group">
+                <label for="invoice-discount-percent">Desconto TANE (%)</label>
+                <input id="invoice-discount-percent" type="number" step="0.01" value="0" />
+              </div>
+              <div class="form-group">
+                <label for="invoice-total-kwh">Carteira solar / total kWh</label>
+                <input id="invoice-total-kwh" type="number" step="0.01" value="0" />
+              </div>
+              <div class="form-group">
+                <label for="invoice-billed-kwh">kWh faturado</label>
+                <input id="invoice-billed-kwh" type="number" step="0.01" value="0" />
+              </div>
+              <div class="form-group">
+                <label for="invoice-compensated-kwh">kWh compensado</label>
+                <input id="invoice-compensated-kwh" type="number" step="0.01" value="0" />
+              </div>
+            </div>
+
+            <div class="section-title-row top-gap">
+              <h3>Detalhamento da cobrança</h3>
+              <button type="button" id="add-item-btn" class="secondary-btn">+ Adicionar item</button>
+            </div>
+
+            <div id="invoice-items" class="invoice-items"></div>
+
+            <div class="totals-bar">
+              <div>Total dos itens: <strong id="items-total">R$ 0,00</strong></div>
+              <div>Economia: <strong id="invoice-saved-amount">R$ 0,00</strong></div>
+            </div>
+
+            <div class="attachment-box">
+              <input type="hidden" id="invoice-boleto-image-path" />
+              <div class="attachment-box-header">
+                <div>
+                  <strong>Imagem final da impressão</strong>
+                  <div class="attachment-helper">Vincule a imagem que deve aparecer ao final da impressão deste lançamento.</div>
+                </div>
+                <div class="attachment-actions">
+                  <button type="button" id="pick-boleto-image-btn" class="secondary-btn">Selecionar imagem</button>
+                  <button type="button" id="clear-boleto-image-btn" class="secondary-btn">Remover imagem</button>
+                </div>
+              </div>
+              <div id="invoice-boleto-image-name" class="attachment-filename">Nenhuma imagem vinculada.</div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="primary-btn">Salvar lançamento</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="preview-screen" class="screen hidden">
+        <div class="screen-header compact">
+          <div class="panel-header-left">
+            <button data-go="client-detail-screen" class="icon-btn" title="Voltar" aria-label="Voltar">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+            </button>
+            <div>
+              <h2 id="details-client-name">Pré-visualização da fatura</h2>
+              <p id="preview-subtitle" class="header-subtitle">Selecione um lançamento para imprimir.</p>
+            </div>
+          </div>
+          <div class="panel-header-actions">
+            <button id="preview-edit-invoice-btn" class="secondary-btn">Editar lançamento</button>
+            <button id="export-pdf-btn" class="primary-btn">Exportar PDF</button>
+          </div>
+        </div>
+
+        <div class="invoice-preview-wrapper">
+          <div class="invoice-preview" id="invoice-preview">
+            <div class="invoice-top-summary">
+              <div class="top-summary-item">
+                <span class="top-summary-label">ECONOMIZADO</span>
+                <strong id="preview-economy-top">R$ 0,00</strong>
+              </div>
+              <div class="top-summary-item">
+                <span class="top-summary-label">MÊS</span>
+                <strong id="preview-reference-month">--/----</strong>
+              </div>
+              <div class="top-summary-item">
+                <span class="top-summary-label">TOTAL A PAGAR</span>
+                <strong id="preview-total-pay">R$ 0,00</strong>
+              </div>
+            </div>
+
+            <div class="invoice-middle-grid">
+              <div class="customer-info-card">
+                <p><strong>Unidade Consumidora:</strong> <span id="preview-installation">-</span></p>
+                <p><strong>Período de faturamento:</strong> <span id="preview-billing-period">-</span></p>
+              </div>
+
+              <div class="pay-box">
+                <div class="pay-box-header">Você vai pagar:</div>
+                <div class="pay-values">
+                  <span id="preview-without-plan-striked" class="old-price">R$ 0,00</span>
+                  <span id="preview-with-plan" class="new-price">R$ 0,00</span>
+                </div>
+              </div>
+
+              <div class="due-date-box">
+                <div class="due-date-label">Vencimento:</div>
+                <div id="preview-due-date" class="due-date-value">-</div>
+              </div>
+
+              <div class="logo-message-area">
+                <div class="logo-box">
+                  <div class="logo-tane-mark">tane</div>
+                  <div class="logo-subtitle">ENERGIA E GESTÃO</div>
+                </div>
+                <div id="preview-message" class="message-box">Cadastre um lançamento para preencher a fatura.</div>
+              </div>
+            </div>
+
+            <div class="invoice-divider"></div>
+
+            <div class="invoice-bottom-grid">
+              <div class="summary-column">
+                <div class="summary-card red-border">
+                  <span>Sem Plano</span>
+                  <strong id="preview-without-plan">R$ 0,00</strong>
+                </div>
+                <div class="summary-card blue-border">
+                  <span>Com Plano</span>
+                  <strong id="preview-with-plan-left">R$ 0,00</strong>
+                </div>
+                <div class="summary-card green-border">
+                  <span>Economia do mês</span>
+                  <strong id="preview-economy-left">R$ 0,00</strong>
+                </div>
+                <div class="summary-card gray-card">
+                  <span>Economizados desde o início do plano</span>
+                  <strong id="preview-total-economy">R$ 0,00</strong>
+                </div>
+                <div class="summary-card gray-card">
+                  <span>Carteira Solar desde o início do plano</span>
+                  <strong id="preview-solar-wallet">0,00 kWh</strong>
+                </div>
+                <div class="summary-warning">
+                  Atenção, não esqueça de efetuar o pagamento dos valores indicados pela ENEL.
+                </div>
+              </div>
+
+              <div class="statement-column">
+                <div class="statement-card">
+                  <div class="statement-header">Extrato Detalhado</div>
+                  <div class="statement-body">
+                    <div class="statement-line highlighted">
+                      <span>TOTAL DA FATURA COMPLETA SEM DESCONTO</span>
+                      <strong id="preview-statement-without-plan">R$ 0,00</strong>
+                    </div>
+                    <div class="statement-line highlighted">
+                      <span>TOTAL DA FATURA COMPLETA COM DESCONTO TANE</span>
+                      <strong id="preview-statement-with-plan">R$ 0,00</strong>
+                    </div>
+                    <div class="statement-line economy-line">
+                      <span>ECONOMIA</span>
+                      <strong id="preview-statement-economy">R$ 0,00</strong>
+                    </div>
+                    <div class="statement-section-title">Detalhes da cobrança:</div>
+                    <div id="statement-details" class="statement-details"></div>
+                    <div class="statement-line economy-line total-strong">
+                      <span>Desconto TANE</span>
+                      <strong id="preview-discount-line">R$ 0,00</strong>
+                    </div>
+                    <div class="black-total-box">
+                      Total a pagar TANE <strong id="preview-black-total">R$ 0,00</strong>
+                    </div>
+                    <div class="enel-total-row">
+                      <span>Total a pagar Enel</span>
+                      <strong id="preview-enel-total">R$ 0,00</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="preview-final-image-section" class="preview-final-image-section hidden">
+              <img id="preview-final-image" class="preview-final-image" alt="Imagem vinculada ao lançamento" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="users-screen" class="screen hidden">
+        <div class="screen-header">
+          <div>
+            <h1>Gerenciamento de usuários</h1>
+            <p>Somente o administrador pode criar usuários, redefinir senhas e desabilitar acessos.</p>
+          </div>
+        </div>
+
+        <div class="detail-layout users-layout">
+          <div class="panel">
+            <div class="section-title-row">
+              <h3>Novo usuário</h3>
+            </div>
+            <form id="user-form" class="client-form">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="user-name">Nome</label>
+                  <input id="user-name" type="text" />
+                </div>
+                <div class="form-group">
+                  <label for="user-username">Usuário</label>
+                  <input id="user-username" type="text" />
+                </div>
+                <div class="form-group form-group-full">
+                  <label for="user-password">Senha inicial</label>
+                  <input id="user-password" type="password" />
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="primary-btn">Criar usuário</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="panel">
+            <div class="section-title-row">
+              <h3>Usuários cadastrados</h3>
+            </div>
+            <div id="users-list" class="users-list"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="password-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="section-title-row">
+        <h3 id="password-modal-title">Redefinir senha</h3>
+      </div>
+      <form id="password-form" class="client-form">
+        <input type="hidden" id="password-target-user-id" />
+        <input type="hidden" id="password-mode" value="admin-reset" />
+        <div id="current-password-group" class="form-group hidden">
+          <label for="current-password">Senha atual</label>
+          <input id="current-password" type="password" />
+        </div>
+        <div class="form-group">
+          <label for="new-password">Nova senha</label>
+          <input id="new-password" type="password" required />
+        </div>
+        <div class="form-actions gap-actions">
+          <button type="button" id="close-password-modal-btn" class="secondary-btn">Cancelar</button>
+          <button type="submit" class="primary-btn">Salvar senha</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
