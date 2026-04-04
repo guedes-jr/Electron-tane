@@ -799,40 +799,46 @@ function updatePreview(invoiceId = '') {
     return;
   }
 
-  state.selectedInvoiceId = invoice.id;
-  const aggregate = getAggregateForClient(client.id);
-  const billingPeriod = invoice.billingPeriod || (invoice.periodStart && invoice.periodEnd
-    ? `${formatDateToBr(invoice.periodStart)} - ${formatDateToBr(invoice.periodEnd)}`
-    : '-');
+   state.selectedInvoiceId = invoice.id;
+   const aggregate = getAggregateForClient(client.id);
+   const billingPeriod = invoice.billingPeriod || (invoice.periodStart && invoice.periodEnd
+     ? `${formatDateToBr(invoice.periodStart)} - ${formatDateToBr(invoice.periodEnd)}`
+     : '-');
 
-  byId('details-client-name').textContent = client.name || 'Pré-visualização da fatura';
-  byId('preview-subtitle').textContent = `Competência ${formatMonthReference(invoice.competence)}`;
-  byId('preview-economy-top').textContent = currency(invoice.savedAmount || 0);
-  byId('preview-reference-month').textContent = formatMonthReference(invoice.competence);
-  byId('preview-total-pay').textContent = currency(invoice.taneTotal || 0);
+   // Calcula o desconto baseado no percentual e no valor total sem plano
+   const originalTotal = Number(invoice.originalTotal || 0);
+   const discountPercent = Number(invoice.discountPercent || 0);
+   const discountAmount = originalTotal * (discountPercent / 100);
+   const taneTotal = originalTotal - discountAmount;
 
-  const topSummaryLabel = document.querySelector('.invoice-top-summary .top-summary-item:nth-child(2) .top-summary-label');
-  if (topSummaryLabel) {
-    topSummaryLabel.textContent = formatMonthName(invoice.competence);
-  }
+   byId('details-client-name').textContent = client.name || 'Pré-visualização da fatura';
+   byId('preview-subtitle').textContent = `Competência ${formatMonthReference(invoice.competence)}`;
+   byId('preview-economy-top').textContent = currency(discountAmount);
+   byId('preview-reference-month').textContent = formatMonthReference(invoice.competence);
+   byId('preview-total-pay').textContent = currency(taneTotal);
 
-  byId('preview-installation').textContent = client.installationNumber || client.uc || '-';
-  byId('preview-billing-period').textContent = billingPeriod;
-  byId('preview-without-plan-striked').textContent = currency(invoice.originalTotal || 0);
-  byId('preview-with-plan').textContent = currency(invoice.taneTotal || 0);
-  byId('preview-due-date').textContent = formatDateToBr(invoice.dueDate);
-  byId('preview-message').textContent = getDefaultMessage(client, invoice);
-  byId('preview-without-plan').textContent = currency(invoice.originalTotal || 0);
-  byId('preview-with-plan-left').textContent = currency(invoice.taneTotal || 0);
-  byId('preview-economy-left').textContent = currency(invoice.savedAmount || 0);
-  byId('preview-total-economy').textContent = currency(aggregate.totalEconomy || 0);
-  byId('preview-solar-wallet').textContent = `${decimal(aggregate.totalSolarWallet || 0)} kWh`;
-  byId('preview-statement-without-plan').textContent = currency(invoice.originalTotal || 0);
-  byId('preview-statement-with-plan').textContent = currency(invoice.taneTotal || 0);
-  byId('preview-statement-economy').textContent = currency(invoice.savedAmount || 0);
-  byId('preview-discount-line').textContent = currency(invoice.savedAmount || 0);
-  byId('preview-black-total').textContent = currency(invoice.taneTotal || 0);
-  byId('preview-enel-total').textContent = currency(invoice.originalTotal || 0);
+   const topSummaryLabel = document.querySelector('.invoice-top-summary .top-summary-item:nth-child(2) .top-summary-label');
+   if (topSummaryLabel) {
+     topSummaryLabel.textContent = formatMonthName(invoice.competence);
+   }
+
+   byId('preview-installation').textContent = client.installationNumber || client.uc || '-';
+   byId('preview-billing-period').textContent = billingPeriod;
+   byId('preview-without-plan-striked').textContent = currency(originalTotal);
+   byId('preview-with-plan').textContent = currency(taneTotal);
+   byId('preview-due-date').textContent = formatDateToBr(invoice.dueDate);
+   byId('preview-message').textContent = getDefaultMessage(client, invoice);
+   byId('preview-without-plan').textContent = currency(originalTotal);
+   byId('preview-with-plan-left').textContent = currency(taneTotal);
+   byId('preview-economy-left').textContent = currency(discountAmount);
+   byId('preview-total-economy').textContent = currency(aggregate.totalEconomy || 0);
+   byId('preview-solar-wallet').textContent = `${decimal(aggregate.totalSolarWallet || 0)} kWh`;
+   byId('preview-statement-without-plan').textContent = currency(originalTotal);
+   byId('preview-statement-with-plan').textContent = currency(taneTotal);
+   byId('preview-statement-economy').textContent = currency(discountAmount);
+   byId('preview-discount-line').textContent = currency(discountAmount);
+   byId('preview-black-total').textContent = currency(taneTotal);
+   byId('preview-enel-total').textContent = currency(originalTotal);
   renderStatementItems(invoice.items || []);
   setPreviewFinalImage(invoice.boletoImagePath || '');
 }
