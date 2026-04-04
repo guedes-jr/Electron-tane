@@ -659,15 +659,15 @@ function recalculateInvoiceForm() {
    const itemsTotal = items.reduce((sum, item) => sum + Number(item.value || 0), 0);
    let originalTotal = Number(byId('invoice-original-total').value || 0);
    const discountPercent = Number(byId('invoice-discount-percent').value || 0);
-   let taneTotal = Number(byId('invoice-tane-total').value || 0);
 
    // Prioriza o input "Total sem plano", mas usa soma de itens se vazio/zero
    if (!originalTotal && itemsTotal) {
      originalTotal = itemsTotal;
-     byId('invoice-original-total').value = String(itemsTotal);
+     byId('invoice-original-total').value = Number(itemsTotal).toFixed(2);
    }
 
    // Calcula o valor a pagar com desconto baseado no percentual
+   let taneTotal = 0;
    if (originalTotal) {
      const discountAmount = originalTotal * (discountPercent / 100);
      taneTotal = originalTotal - discountAmount;
