@@ -633,67 +633,76 @@ ipcMain.handle('clients:delete-many', (_, clientIds = []) => {
   };
 });
 
-ipcMain.handle('invoices:save', (_, payload) => {
-  const invoices = readJson(INVOICES_FILE);
-  const items = Array.isArray(payload.items)
-    ? payload.items
-      .filter(item => String(item.description || '').trim() || Number(item.value || 0) !== 0)
-      .map((item, index) => ({
-        id: item.id || `ITEM-${Date.now()}-${index}`,
-        description: String(item.description || '').trim(),
-        value: Number(item.value || 0)
-      }))
-    : [];
+ ipcMain.handle('invoices:save', (_, payload) => {
+   const invoices = readJson(INVOICES_FILE);
+   const items = Array.isArray(payload.items)
+     ? payload.items
+       .filter(item => String(item.description || '').trim() || Number(item.value || 0) !== 0)
+       .map((item, index) => ({
+         id: item.id || `ITEM-${Date.now()}-${index}`,
+         description: String(item.description || '').trim(),
+         value: Number(item.value || 0)
+       }))
+     : [];
 
-  const totalFromItems = items.reduce((sum, item) => sum + Number(item.value || 0), 0);
-  const originalTotal = Number(payload.originalTotal || 0);
-  const taneTotal = Number(payload.taneTotal || totalFromItems || 0);
-  const savedAmount = Number(payload.savedAmount || (originalTotal - taneTotal));
-  const competence = String(payload.competence || '').trim();
-  const clientId = String(payload.clientId || '').trim();
+   const totalFromItems = items.reduce((sum, item) => sum + Number(item.value || 0), 0);
+   let originalTotal = Number(payload.originalTotal || 0);
+   
+   // Se originalTotal não foi informado, usa a soma dos itens
+   if (!originalTotal && totalFromItems) {
+     originalTotal = totalFromItems;
+   }
 
-  const invoice = {
-    id: payload.id || `FAT-${Date.now()}`,
-    clientId,
-    competence,
-    dueDate: String(payload.dueDate || '').trim(),
-    periodStart: String(payload.periodStart || '').trim(),
-    periodEnd: String(payload.periodEnd || '').trim(),
-    billingPeriod: String(payload.billingPeriod || '').trim(),
-    originalTotal,
-    discountPercent: Number(payload.discountPercent || 0),
-    taneTotal,
-    savedAmount,
-    totalKwh: Number(payload.totalKwh || 0),
-    billedKwh: Number(payload.billedKwh || 0),
-    compensatedKwh: Number(payload.compensatedKwh || 0),
-    boletoImagePath: String(payload.boletoImagePath || '').trim(),
-    items,
-    updatedAt: new Date().toISOString(),
-    createdAt: payload.createdAt || new Date().toISOString()
-  };
+   const discountPercent = Number(payload.discountPercent || 0);
+   // Calcula taneTotal aplicando o desconto percentual
+   const discountAmount = originalTotal * (discountPercent / 100);
+   const taneTotal = originalTotal - discountAmount;
+   const savedAmount = discountAmount;
+   const competence = String(payload.competence || '').trim();
+   const clientId = String(payload.clientId || '').trim();
 
-  const existingIndex = invoices.findIndex(item => {
-    if (payload.id && item.id === payload.id) {
-      return true;
-    }
+   const invoice = {
+     id: payload.id || `FAT-${Date.now()}`,
+     clientId,
+     competence,
+     dueDate: String(payload.dueDate || '').trim(),
+     periodStart: String(payload.periodStart || '').trim(),
+     periodEnd: String(payload.periodEnd || '').trim(),
+     billingPeriod: String(payload.billingPeriod || '').trim(),
+     originalTotal,
+     discountPercent,
+     taneTotal,
+     savedAmount,
+     totalKwh: Number(payload.totalKwh || 0),
+     billedKwh: Number(payload.billedKwh || 0),
+     compensatedKwh: Number(payload.compensatedKwh || 0),
+     boletoImagePath: String(payload.boletoImagePath || '').trim(),
+     items,
+     updatedAt: new Date().toISOString(),
+     createdAt: payload.createdAt || new Date().toISOString()
+   };
 
-    return item.clientId === clientId && item.competence === competence;
-  });
+   const existingIndex = invoices.findIndex(item => {
+     if (payload.id && item.id === payload.id) {
+       return true;
+     }
 
-  if (existingIndex >= 0) {
-    invoices[existingIndex] = {
-      ...invoices[existingIndex],
-      ...invoice,
-      id: invoices[existingIndex].id || invoice.id,
-      createdAt: invoices[existingIndex].createdAt || invoice.createdAt
-    };
-  } else {
-    invoices.push(invoice);
-  }
+     return item.clientId === clientId && item.competence === competence;
+   });
 
-  writeJson(INVOICES_FILE, invoices);
-  return existingIndex >= 0 ? invoices[existingIndex] : invoice;
+   if (existingIndex >= 0) {
+     invoices[existingIndex] = {
+       ...invoices[existingIndex],
+       ...invoice,
+       id: invoices[existingIndex].id || invoice.id,
+       createdAt: invoices[existingIndex].createdAt || invoice.createdAt
+     };
+   } else {
+     invoices.push(invoice);
+   }
+
+   writeJson(INVOICES_FILE, invoices);
+   return existingIndex >= 0 ? invoices[existingIndex] : invoice;
 });
 
 ipcMain.handle('invoices:delete', (_, invoiceId) => {
