@@ -13,7 +13,9 @@
 <body>
   <section id="login-screen" class="login-screen">
     <div class="login-card">
-      <div class="login-brand">tane</div>
+      <div class="login-brand">
+        <img src="../../assets/img/Logo_Tane.png" alt="TANE Energia e Gestão" />
+      </div>
       <h1>Acesso ao sistema</h1>
       <p>Entre com seu usuário e senha para acessar os clientes, lançamentos e impressão.</p>
       <form id="login-form" class="login-form">
@@ -111,7 +113,14 @@
               </div>
               <div class="form-group">
                 <label for="client-installation">Unidade consumidora</label>
-                <input id="client-installation" type="text" />
+                <select id="client-installation">
+                  <option value="">Selecione a unidade</option>
+                  <option value="64839201">64839201 - Usina Fotovoltaica TANE I</option>
+                  <option value="83921045">83921045 - Complexo Solar TANE II</option>
+                  <option value="10293847">10293847 - Geração Remota - Unidade SP</option>
+                  <option value="56473829">56473829 - Microgeração - Sede Administrativa</option>
+                  <option value="22334455">22334455 - Autoconsumo Remoto - Filial</option>
+                </select>
               </div>
               <div class="form-group">
                 <label for="client-document">Documento</label>
@@ -221,22 +230,14 @@
                 <label for="invoice-tane-total">Total a pagar TANE (R$)</label>
                 <input id="invoice-tane-total" type="number" step="0.01" value="0" />
               </div>
-              <div class="form-group">
-                <label for="invoice-discount-percent">Desconto TANE (%)</label>
-                <input id="invoice-discount-percent" type="number" step="0.01" value="0" />
-              </div>
-              <div class="form-group">
-                <label for="invoice-total-kwh">Carteira solar / total kWh</label>
-                <input id="invoice-total-kwh" type="number" step="0.01" value="0" />
-              </div>
-              <div class="form-group">
-                <label for="invoice-billed-kwh">kWh faturado</label>
-                <input id="invoice-billed-kwh" type="number" step="0.01" value="0" />
-              </div>
-              <div class="form-group">
-                <label for="invoice-compensated-kwh">kWh compensado</label>
-                <input id="invoice-compensated-kwh" type="number" step="0.01" value="0" />
-              </div>
+               <div class="form-group">
+                 <label for="invoice-discount-percent">Desconto TANE (%)</label>
+                 <input id="invoice-discount-percent" type="number" step="0.01" value="25" />
+               </div>
+               <div class="form-group">
+                 <label for="invoice-billed-kwh">kWh faturado</label>
+                 <input id="invoice-billed-kwh" type="number" step="0.01" value="0" />
+               </div>
             </div>
 
             <div class="section-title-row top-gap">
@@ -326,9 +327,11 @@
                 <div id="preview-due-date" class="due-date-value">-</div>
               </div>
 
-              <div class="logo-message-area">
+                <div class="logo-message-area">
                 <div class="logo-box">
-                  <div class="logo-tane-mark">tane</div>
+                  <div class="logo-tane-mark">
+                    <img src="../../assets/img/Logo_Tane.png" alt="TANE" />
+                  </div>
                   <div class="logo-subtitle">ENERGIA E GESTÃO</div>
                 </div>
                 <div id="preview-message" class="message-box">Cadastre um lançamento para preencher a fatura.</div>

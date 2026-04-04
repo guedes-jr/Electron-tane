@@ -217,6 +217,21 @@ function applyMonthMask(value) {
   return digits;
 }
 
+function applyCpfCnpjMask(value) {
+  let v = String(value || '').replace(/\D/g, '').slice(0, 14);
+  if (v.length <= 11) {
+    v = v.replace(/(\d{3})(\d)/, "$1.$2");
+    v = v.replace(/(\d{3})(\d)/, "$1.$2");
+    v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  } else {
+    v = v.replace(/^(\d{2})(\d)/, "$1.$2");
+    v = v.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+    v = v.replace(/\.(\d{3})(\d)/, ".$1/$2");
+    v = v.replace(/(\d{4})(\d)/, "$1-$2");
+  }
+  return v;
+}
+
 function attachMaskedInput(inputId, formatter) {
   const element = byId(inputId);
 
@@ -232,11 +247,12 @@ function attachMaskedInput(inputId, formatter) {
   element.addEventListener('change', handler);
 }
 
-function attachBrazilianDateMasks() {
+function attachInputMasks() {
   attachMaskedInput('invoice-competence', applyMonthMask);
   attachMaskedInput('invoice-due-date', applyDateMask);
   attachMaskedInput('invoice-period-start', applyDateMask);
   attachMaskedInput('invoice-period-end', applyDateMask);
+  attachMaskedInput('client-document', applyCpfCnpjMask);
 }
 
 function isAdmin() {
@@ -372,7 +388,7 @@ function renderClientsList() {
           <div>
             <h3 class="client-card-title">${escapeHtml(client.name || 'Sem nome')}</h3>
             <div class="client-card-subtitle">UC: ${escapeHtml(client.installationNumber || client.uc || '-')}</div>
-            <div class="client-card-subtitle">${escapeHtml(client.distributor || 'ENEL')} · ${escapeHtml(client.document || 'Sem documento')}</div>
+            <div class="client-card-subtitle">${escapeHtml(client.distributor || 'ENEL')} · ${escapeHtml(applyCpfCnpjMask(client.document) || 'Sem documento')}</div>
           </div>
           ${state.multiSelectMode ? '<input type="checkbox" class="client-card-checkbox" />' : ''}
         </div>
@@ -429,7 +445,7 @@ function populateClientForm(client) {
   byId('client-id').value = client.id || '';
   byId('client-name').value = client.name || '';
   byId('client-installation').value = client.installationNumber || client.uc || '';
-  byId('client-document').value = client.document || '';
+  byId('client-document').value = applyCpfCnpjMask(client.document || '');
   byId('client-address').value = client.address || '';
   byId('client-distributor').value = client.distributor || 'ENEL';
   byId('client-message').value = client.message || '';
@@ -482,7 +498,7 @@ function fillClientDetail(client) {
   byId('detail-client-name').textContent = client.name || 'Cliente';
   byId('detail-client-subtitle').textContent = `UC ${client.installationNumber || client.uc || '-'} · ${client.distributor || 'ENEL'}`;
   byId('detail-installation').textContent = client.installationNumber || client.uc || '-';
-  byId('detail-document').textContent = client.document || '-';
+  byId('detail-document').textContent = applyCpfCnpjMask(client.document) || '-';
   byId('detail-distributor').textContent = client.distributor || '-';
   byId('detail-address').textContent = client.address || '-';
 }
@@ -540,40 +556,39 @@ function renderInvoiceList() {
 }
 
 function clearInvoiceForm() {
-  byId('invoice-form').reset();
-  byId('invoice-id').value = '';
-  byId('invoice-form-title').textContent = 'Novo lançamento';
-  byId('invoice-boleto-image-path').value = '';
-  updateInvoiceImageName('');
-  byId('invoice-items').innerHTML = '';
-  addInvoiceItemRow();
-  recalculateInvoiceForm();
+   byId('invoice-form').reset();
+   byId('invoice-id').value = '';
+   byId('invoice-form-title').textContent = 'Novo lançamento';
+   byId('invoice-boleto-image-path').value = '';
+   updateInvoiceImageName('');
+   byId('invoice-items').innerHTML = '';
+   byId('invoice-discount-percent').value = '25';
+   addInvoiceItemRow();
+   recalculateInvoiceForm();
 }
 
 function populateInvoiceForm(invoice) {
-  byId('invoice-id').value = invoice.id || '';
-  byId('invoice-competence').value = formatMonthForInput(invoice.competence);
-  byId('invoice-due-date').value = formatDateForInput(invoice.dueDate);
-  byId('invoice-period-start').value = formatDateForInput(invoice.periodStart);
-  byId('invoice-period-end').value = formatDateForInput(invoice.periodEnd);
-  byId('invoice-original-total').value = Number(invoice.originalTotal || 0);
-  byId('invoice-tane-total').value = Number(invoice.taneTotal || 0);
-  byId('invoice-discount-percent').value = Number(invoice.discountPercent || 0);
-  byId('invoice-total-kwh').value = Number(invoice.totalKwh || 0);
-  byId('invoice-billed-kwh').value = Number(invoice.billedKwh || 0);
-  byId('invoice-compensated-kwh').value = Number(invoice.compensatedKwh || 0);
-  byId('invoice-boleto-image-path').value = invoice.boletoImagePath || '';
-  updateInvoiceImageName(invoice.boletoImagePath || '');
-  byId('invoice-form-title').textContent = `Editar lançamento ${formatMonthReference(invoice.competence)}`;
+   byId('invoice-id').value = invoice.id || '';
+   byId('invoice-competence').value = formatMonthForInput(invoice.competence);
+   byId('invoice-due-date').value = formatDateForInput(invoice.dueDate);
+   byId('invoice-period-start').value = formatDateForInput(invoice.periodStart);
+   byId('invoice-period-end').value = formatDateForInput(invoice.periodEnd);
+   byId('invoice-original-total').value = Number(invoice.originalTotal || 0);
+   byId('invoice-tane-total').value = Number(invoice.taneTotal || 0);
+   byId('invoice-discount-percent').value = Number(invoice.discountPercent || 25);
+   byId('invoice-billed-kwh').value = Number(invoice.billedKwh || 0);
+   byId('invoice-boleto-image-path').value = invoice.boletoImagePath || '';
+   updateInvoiceImageName(invoice.boletoImagePath || '');
+   byId('invoice-form-title').textContent = `Editar lançamento ${formatMonthReference(invoice.competence)}`;
 
-  byId('invoice-items').innerHTML = '';
-  if (Array.isArray(invoice.items) && invoice.items.length) {
-    invoice.items.forEach(item => addInvoiceItemRow(item));
-  } else {
-    addInvoiceItemRow();
-  }
+   byId('invoice-items').innerHTML = '';
+   if (Array.isArray(invoice.items) && invoice.items.length) {
+     invoice.items.forEach(item => addInvoiceItemRow(item));
+   } else {
+     addInvoiceItemRow();
+   }
 
-  recalculateInvoiceForm();
+   recalculateInvoiceForm();
 }
 
 function addInvoiceItemRow(item = null) {
@@ -640,47 +655,54 @@ function updateInvoiceImageName(filePath) {
 }
 
 function recalculateInvoiceForm() {
-  const items = collectInvoiceItems();
-  const itemsTotal = items.reduce((sum, item) => sum + Number(item.value || 0), 0);
-  const originalTotal = Number(byId('invoice-original-total').value || 0);
-  let taneTotal = Number(byId('invoice-tane-total').value || 0);
+   const items = collectInvoiceItems();
+   const itemsTotal = items.reduce((sum, item) => sum + Number(item.value || 0), 0);
+   let originalTotal = Number(byId('invoice-original-total').value || 0);
+   const discountPercent = Number(byId('invoice-discount-percent').value || 0);
+   let taneTotal = Number(byId('invoice-tane-total').value || 0);
 
-  if (!taneTotal && itemsTotal) {
-    taneTotal = itemsTotal;
-    byId('invoice-tane-total').value = String(itemsTotal);
-  }
+   // Prioriza o input "Total sem plano", mas usa soma de itens se vazio/zero
+   if (!originalTotal && itemsTotal) {
+     originalTotal = itemsTotal;
+     byId('invoice-original-total').value = String(itemsTotal);
+   }
 
-  const savedAmount = originalTotal - taneTotal;
-  byId('items-total').textContent = currency(itemsTotal);
-  byId('invoice-saved-amount').textContent = currency(savedAmount);
+   // Calcula o valor a pagar com desconto baseado no percentual
+   if (originalTotal) {
+     const discountAmount = originalTotal * (discountPercent / 100);
+     taneTotal = originalTotal - discountAmount;
+     byId('invoice-tane-total').value = Number(taneTotal).toFixed(2);
+   }
+
+   const savedAmount = originalTotal - taneTotal;
+   byId('items-total').textContent = currency(itemsTotal);
+   byId('invoice-saved-amount').textContent = currency(savedAmount);
 }
 
 function collectInvoicePayload() {
-  const competence = brMonthToIso(byId('invoice-competence').value);
-  const dueDate = brDateToIso(byId('invoice-due-date').value);
-  const periodStart = brDateToIso(byId('invoice-period-start').value);
-  const periodEnd = brDateToIso(byId('invoice-period-end').value);
+   const competence = brMonthToIso(byId('invoice-competence').value);
+   const dueDate = brDateToIso(byId('invoice-due-date').value);
+   const periodStart = brDateToIso(byId('invoice-period-start').value);
+   const periodEnd = brDateToIso(byId('invoice-period-end').value);
 
-  return {
-    id: byId('invoice-id').value || undefined,
-    clientId: state.selectedClientId,
-    competence,
-    dueDate,
-    periodStart,
-    periodEnd,
-    billingPeriod: periodStart && periodEnd
-      ? `${formatDateToBr(periodStart)} - ${formatDateToBr(periodEnd)}`
-      : '',
-    originalTotal: Number(byId('invoice-original-total').value || 0),
-    taneTotal: Number(byId('invoice-tane-total').value || 0),
-    discountPercent: Number(byId('invoice-discount-percent').value || 0),
-    totalKwh: Number(byId('invoice-total-kwh').value || 0),
-    billedKwh: Number(byId('invoice-billed-kwh').value || 0),
-    compensatedKwh: Number(byId('invoice-compensated-kwh').value || 0),
-    boletoImagePath: byId('invoice-boleto-image-path').value.trim(),
-    savedAmount: Number(byId('invoice-original-total').value || 0) - Number(byId('invoice-tane-total').value || 0),
-    items: collectInvoiceItems()
-  };
+   return {
+     id: byId('invoice-id').value || undefined,
+     clientId: state.selectedClientId,
+     competence,
+     dueDate,
+     periodStart,
+     periodEnd,
+     billingPeriod: periodStart && periodEnd
+       ? `${formatDateToBr(periodStart)} - ${formatDateToBr(periodEnd)}`
+       : '',
+     originalTotal: Number(byId('invoice-original-total').value || 0),
+     taneTotal: Number(byId('invoice-tane-total').value || 0),
+     discountPercent: Number(byId('invoice-discount-percent').value || 0),
+     billedKwh: Number(byId('invoice-billed-kwh').value || 0),
+     boletoImagePath: byId('invoice-boleto-image-path').value.trim(),
+     savedAmount: Number(byId('invoice-original-total').value || 0) - Number(byId('invoice-tane-total').value || 0),
+     items: collectInvoiceItems()
+   };
 }
 
 function openInvoiceForm(invoiceId = '') {
@@ -1245,18 +1267,16 @@ function attachEvents() {
     updateInvoiceImageName('');
   });
 
-  [
-    'invoice-original-total',
-    'invoice-tane-total',
-    'invoice-discount-percent',
-    'invoice-total-kwh',
-    'invoice-billed-kwh',
-    'invoice-compensated-kwh'
-  ].forEach(id => {
-    const element = byId(id);
-    element.addEventListener('input', recalculateInvoiceForm);
-    element.addEventListener('change', recalculateInvoiceForm);
-  });
+   [
+     'invoice-original-total',
+     'invoice-tane-total',
+     'invoice-discount-percent',
+     'invoice-billed-kwh'
+   ].forEach(id => {
+     const element = byId(id);
+     element.addEventListener('input', recalculateInvoiceForm);
+     element.addEventListener('change', recalculateInvoiceForm);
+   });
 
   byId('invoice-form').addEventListener('submit', async event => {
     event.preventDefault();
@@ -1346,7 +1366,7 @@ function setInitialState() {
 
 function init() {
   attachEvents();
-  attachBrazilianDateMasks();
+  attachInputMasks();
   clearInvoiceForm();
   setInitialState();
 }
