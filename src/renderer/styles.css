@@ -647,14 +647,13 @@ textarea {
 .summary-column {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 12px;
 }
-
 
 .summary-card {
   background: #fff;
   border-radius: 10px 0px 10px 0;
-  padding: 24px 16px;
+  padding: 20px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -664,11 +663,11 @@ textarea {
 }
 
 .summary-card span {
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .summary-card strong {
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .red-border {
@@ -702,7 +701,7 @@ textarea {
 }
 
 .custom-card span {
-  font-size: 22px;
+  font-size: 18px;
   text-transform: uppercase;
   color: #333;
   margin-bottom: 2px;
@@ -710,7 +709,7 @@ textarea {
 
 .green-text {
   color: var(--green-dark);
-  font-size: 22px !important;
+  font-size: 18px !important;
 }
 
 .summary-warning {
@@ -1403,7 +1402,7 @@ body.pdf-export-mode #pdf-print-root .preview-final-image {
 @media print {
   @page {
     size: A4;
-    margin: 10mm 6mm;
+    margin: 5mm 6mm;
   }
 
   html,
