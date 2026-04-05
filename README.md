@@ -22,8 +22,8 @@ O projeto **Faturas TANE** é uma aplicação nativa de Desktop (cross-platform)
 ### 🌅 Capturas de Tela
 
 <div align="center">
-  <img src="docs/screenshot1.png" alt="Tela de Login" width="48%" style="border-radius: 8px; border: 1px solid #ddd;"/>
-  <img src="docs/screenshot2.png" alt="Tela de Clientes" width="48%" style="border-radius: 8px; border: 1px solid #ddd;"/>
+  <img src="assets/img/screenshot1.png" alt="Tela de Login" width="48%" style="border-radius: 8px; border: 1px solid #ddd;"/>
+  <img src="assets/img/screenshot2.png" alt="Tela de Clientes" width="48%" style="border-radius: 8px; border: 1px solid #ddd;"/>
 </div>
 
 ---
