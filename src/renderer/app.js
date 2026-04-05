@@ -320,16 +320,16 @@ function getInvoicesForClient(clientId) {
 }
 
 function getAggregateForClient(clientId) {
-  const invoices = getInvoicesForClient(clientId);
+   const invoices = getInvoicesForClient(clientId);
 
-  return invoices.reduce((acc, invoice) => {
-    acc.totalEconomy += Number(invoice.savedAmount || 0);
-    acc.totalSolarWallet += Number(invoice.compensatedKwh || invoice.totalKwh || 0);
-    return acc;
-  }, {
-    totalEconomy: 0,
-    totalSolarWallet: 0
-  });
+   return invoices.reduce((acc, invoice) => {
+     acc.totalEconomy += Number(invoice.savedAmount || 0);
+     acc.totalSolarWallet += Number(invoice.billedKwh || 0);
+     return acc;
+   }, {
+     totalEconomy: 0,
+     totalSolarWallet: 0
+   });
 }
 
 function updateCounters() {
