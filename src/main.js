@@ -175,120 +175,121 @@ async function withDesktopExportLayout(sourceWin, callback) {
 }
 
 async function buildPrintablePreview(win) {
-  const result = await win.webContents.executeJavaScript(`
-    (async () => {
-      const previous = document.getElementById('pdf-capture-root');
-      if (previous) {
-        previous.remove();
-      }
+   const result = await win.webContents.executeJavaScript(`
+     (async () => {
+       const previous = document.getElementById('pdf-capture-root');
+       if (previous) {
+         previous.remove();
+       }
 
-      document.body.classList.add('pdf-export-capture');
+       document.body.classList.add('pdf-export-capture');
 
-      const preview =
-        document.getElementById('invoice-preview') ||
-        document.querySelector('.invoice-preview');
+       const preview =
+         document.getElementById('invoice-preview') ||
+         document.querySelector('.invoice-preview');
 
-      if (!preview) {
-        return { success: false, message: 'Preview da fatura não encontrado.' };
-      }
+       if (!preview) {
+         return { success: false, message: 'Preview da fatura não encontrado.' };
+       }
 
-      const root = document.createElement('div');
-      root.id = 'pdf-capture-root';
-      root.style.position = 'absolute';
-      root.style.left = '50%';
-      root.style.top = '0';
-      root.style.transform = 'translateX(-50%)';
-      root.style.zIndex = '2147483647';
-      root.style.background = '#ffffff';
-      root.style.padding = '0';
-      root.style.margin = '0 auto';
-      root.style.width = '1050px';
-      root.style.minWidth = '1050px';
-      root.style.maxWidth = '1050px';
-      root.style.boxSizing = 'border-box';
+       const root = document.createElement('div');
+       root.id = 'pdf-capture-root';
+       root.style.position = 'absolute';
+       root.style.left = '50%';
+       root.style.top = '0';
+       root.style.transform = 'translateX(-50%)';
+       root.style.zIndex = '2147483647';
+       root.style.background = '#ffffff';
+       root.style.padding = '0';
+       root.style.margin = '0 auto';
+       root.style.width = '1050px';
+       root.style.minWidth = '1050px';
+       root.style.maxWidth = '1050px';
+       root.style.boxSizing = 'border-box';
+       root.style.overflow = 'visible';
 
-      const previewClone = preview.cloneNode(true);
-      previewClone.style.margin = '0 auto';
-      previewClone.style.minWidth = '1050px';
-      previewClone.style.maxWidth = '1050px';
-      previewClone.style.width = '1050px';
-      previewClone.style.boxShadow = 'none';
-      previewClone.style.borderRadius = '8px';
-      previewClone.style.overflow = 'hidden';
+       const previewClone = preview.cloneNode(true);
+       previewClone.style.margin = '0 auto';
+       previewClone.style.minWidth = '1050px';
+       previewClone.style.maxWidth = '1050px';
+       previewClone.style.width = '1050px';
+       previewClone.style.boxShadow = 'none';
+       previewClone.style.borderRadius = '8px';
+       previewClone.style.overflow = 'visible';
 
-      root.appendChild(previewClone);
+       root.appendChild(previewClone);
 
-      document.body.appendChild(root);
-      window.scrollTo(0, 0);
+       document.body.appendChild(root);
+       window.scrollTo(0, 0);
 
-      const images = Array.from(root.querySelectorAll('img'));
-      await Promise.all(images.map(img => {
-        if (img.complete) {
-          return Promise.resolve();
-        }
+       const images = Array.from(root.querySelectorAll('img'));
+       await Promise.all(images.map(img => {
+         if (img.complete) {
+           return Promise.resolve();
+         }
 
-        return new Promise(resolve => {
-          const done = () => resolve();
-          img.addEventListener('load', done, { once: true });
-          img.addEventListener('error', done, { once: true });
-        });
-      }));
+         return new Promise(resolve => {
+           const done = () => resolve();
+           img.addEventListener('load', done, { once: true });
+           img.addEventListener('error', done, { once: true });
+         });
+       }));
 
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-      const rect = root.getBoundingClientRect();
-      const width = Math.max(1, Math.ceil(rect.width));
-      const height = Math.max(1, Math.ceil(root.scrollHeight));
+       const rect = root.getBoundingClientRect();
+       const width = Math.max(1, Math.ceil(rect.width));
+       const height = Math.max(1, Math.ceil(root.scrollHeight || rect.height));
 
-      return {
-        success: true,
-        x: Math.max(0, Math.floor(rect.left)),
-        y: 0,
-        width,
-        height
-      };
-    })();
-  `);
+       return {
+         success: true,
+         x: Math.max(0, Math.floor(rect.left)),
+         y: 0,
+         width,
+         height
+       };
+     })();
+   `);
 
-  const cleanupScript = `
-    (() => {
-      const root = document.getElementById('pdf-capture-root');
-      if (root) {
-        root.remove();
-      }
-      document.body.classList.remove('pdf-export-capture');
-    })();
-  `;
+   const cleanupScript = `
+     (() => {
+       const root = document.getElementById('pdf-capture-root');
+       if (root) {
+         root.remove();
+       }
+       document.body.classList.remove('pdf-export-capture');
+     })();
+   `;
 
-  if (!result?.success) {
-    try {
-      await win.webContents.executeJavaScript(cleanupScript);
-    } catch (error) {
-      null;
-    }
-    throw new Error(result?.message || 'Não foi possível preparar a fatura para exportação.');
-  }
+   if (!result?.success) {
+     try {
+       await win.webContents.executeJavaScript(cleanupScript);
+     } catch (error) {
+       null;
+     }
+     throw new Error(result?.message || 'Não foi possível preparar a fatura para exportação.');
+   }
 
-  await wait(220);
+   await wait(220);
 
-  const image = await win.webContents.capturePage({
-    x: result.x,
-    y: result.y,
-    width: Math.max(1, result.width),
-    height: Math.max(1, result.height)
-  });
+   const image = await win.webContents.capturePage({
+     x: result.x,
+     y: result.y,
+     width: Math.max(1, result.width),
+     height: Math.max(1, result.height)
+   });
 
-  try {
-    await win.webContents.executeJavaScript(cleanupScript);
-  } catch (error) {
-    null;
-  }
+   try {
+     await win.webContents.executeJavaScript(cleanupScript);
+   } catch (error) {
+     null;
+   }
 
-  return {
-    pngBase64: image.toPNG().toString('base64'),
-    width: result.width,
-    height: result.height
-  };
+   return {
+     pngBase64: image.toPNG().toString('base64'),
+     width: result.width,
+     height: result.height
+   };
 }
 
 function createPrintableHtml(imageDataUrl, width, height) {

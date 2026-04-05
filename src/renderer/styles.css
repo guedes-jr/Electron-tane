@@ -1450,6 +1450,37 @@ body.pdf-export-mode #pdf-print-root .preview-final-image {
   }
 }
 
+/* Estilos para captura de PDF */
+body.pdf-export-capture {
+  background: #ffffff;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+}
+
+body.pdf-export-capture #pdf-capture-root {
+  all: unset;
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  background: #ffffff;
+  width: 1050px;
+  min-width: 1050px;
+  max-width: 1050px;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+body.pdf-export-capture .invoice-preview {
+  overflow: visible !important;
+  max-width: none !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+
 @media (max-width: 720px) {
   .topbar,
   .screen-header {
