@@ -106,3 +106,7 @@ ehthumbs.db
 
 # generated docs
 docs/
+
+# Arquivos pdf gerados
+*.pdf
+*.exe

@@ -315,12 +315,25 @@ function getInvoicesForClient(clientId) {
     .sort((a, b) => String(b.competence || '').localeCompare(String(a.competence || '')));
 }
 
-function getAggregateForClient(clientId) {
-   const invoices = getInvoicesForClient(clientId);
+function getAggregateForClient(clientId, limitCompetence = '') {
+   let invoices = getInvoicesForClient(clientId);
+
+   // Para o cálculo acumulado (Ex: total economizado até Fev/2026), 
+   // filtramos e ordenamos cronologicamente (ASC).
+   if (limitCompetence) {
+     invoices = invoices.filter(inv => (inv.competence || '') <= limitCompetence);
+   }
 
    return invoices.reduce((acc, invoice) => {
-     acc.totalEconomy += Number(invoice.savedAmount || 0);
-     acc.totalSolarWallet += Number(invoice.compensatedKwh || invoice.billedKwh || 0);
+     const saved = Number(invoice.savedAmount || 0);
+     const rate = Number(invoice.kwhRate || 0.93);
+     acc.totalEconomy += saved;
+     // kWh = economia / taxa; se tiver compensatedKwh manual != 0 usa ele
+     if (Number(invoice.compensatedKwh || 0) !== 0) {
+       acc.totalSolarWallet += Number(invoice.compensatedKwh);
+     } else {
+       acc.totalSolarWallet += rate > 0 ? (saved / rate) : 0;
+     }
      return acc;
    }, {
      totalEconomy: 0,
@@ -329,8 +342,28 @@ function getAggregateForClient(clientId) {
 }
 
 function updateCounters() {
-  byId('clients-count').textContent = String(state.clients.length);
-  byId('invoices-count').textContent = String(state.invoices.length);
+  const clientsCount = state.clients.length;
+  const invoicesCount = state.invoices.length;
+  
+  let totalTanePaid = 0;
+  let totalGlobalKwh = 0;
+
+  state.invoices.forEach(inv => {
+    totalTanePaid += Number(inv.taneTotal || 0);
+
+    const saved = Number(inv.savedAmount || 0);
+    const rate = Number(inv.kwhRate || 0.93);
+    const kwhMonth = Number(inv.compensatedKwh || 0) !== 0
+      ? Number(inv.compensatedKwh)
+      : (rate > 0 ? saved / rate : 0);
+    
+    totalGlobalKwh += kwhMonth;
+  });
+
+  byId('dashboard-clients-count').textContent = String(clientsCount);
+  byId('dashboard-invoices-count').textContent = String(invoicesCount);
+  byId('dashboard-tane-paid').textContent = currency(totalTanePaid);
+  byId('dashboard-kwh-accum').textContent = `${decimal(totalGlobalKwh)} kWh`;
 }
 
 function updateSelectionCounter() {
@@ -500,63 +533,196 @@ function fillClientDetail(client) {
   byId('detail-address').textContent = client.address || '-';
 }
 
+const invoiceTableState = {
+  sortCol: 'competence',
+  sortDir: 'desc'
+};
+
 function renderInvoiceList() {
-  const container = byId('invoice-list');
+  const tbody = byId('invoice-list');
   const client = getClientById(state.selectedClientId);
 
   if (!client) {
-    container.innerHTML = '<div class="empty-card"><p>Selecione um cliente.</p></div>';
+    tbody.innerHTML = '<tr><td colspan="10" class="dt-empty">Selecione um cliente.</td></tr>';
     return;
   }
 
-  const invoices = getInvoicesForClient(client.id);
-  if (!invoices.length) {
-    container.innerHTML = `
-      <div class="empty-card">
-        <h3>Nenhum lançamento cadastrado</h3>
-        <p>Crie o primeiro lançamento mensal para este cliente.</p>
-      </div>
-    `;
+  const allInvoices = getInvoicesForClient(client.id);
+
+  if (!allInvoices.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="dt-empty"><strong>Nenhum lançamento cadastrado</strong><br>Crie o primeiro lançamento mensal para este cliente.</td></tr>';
+    byId('datatable-summary').textContent = '';
+    byId('datatable-totals').innerHTML = '';
     return;
   }
 
-  container.innerHTML = invoices.map(invoice => {
+  // Calcular kWh acumulado por lançamento (acumulativo por data)
+  const sorted = allInvoices
+    .slice()
+    .sort((a, b) => String(a.competence || '').localeCompare(String(b.competence || '')));
+
+  let runningKwh = 0;
+  let runningEconomy = 0;
+  const enriched = sorted.map(invoice => {
+    const saved = Number(invoice.savedAmount || 0);
+    const rate = Number(invoice.kwhRate || 0.93);
+    const kwhMonth = Number(invoice.compensatedKwh || 0) !== 0
+      ? Number(invoice.compensatedKwh)
+      : (rate > 0 ? saved / rate : 0);
+
+    runningKwh += kwhMonth;
+    runningEconomy += saved;
+
+    return {
+      ...invoice,
+      _kwhMonth: kwhMonth,
+      _kwhAccum: invoice.accumulatedKwh != null && invoice.accumulatedKwh !== ''
+        ? Number(invoice.accumulatedKwh)
+        : runningKwh,
+      _runningEconomy: runningEconomy
+    };
+  });
+
+  // Aplicar ordenação
+  const col = invoiceTableState.sortCol;
+  const dir = invoiceTableState.sortDir;
+
+  const numCols = ['originalTotal', 'taneTotal', 'savedAmount', '_runningEconomy', 'compensatedKwh', 'accumulatedKwh'];
+
+  enriched.sort((a, b) => {
+    let va, vb;
+    if (col === 'compensatedKwh') {
+      va = a._kwhMonth; vb = b._kwhMonth;
+    } else if (col === 'accumulatedKwh') {
+      va = a._kwhAccum; vb = b._kwhAccum;
+    } else if (numCols.includes(col)) {
+      va = Number(a[col] || 0); vb = Number(b[col] || 0);
+    } else {
+      va = String(a[col] || ''); vb = String(b[col] || '');
+    }
+
+    if (typeof va === 'number') {
+      return dir === 'asc' ? va - vb : vb - va;
+    }
+    return dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+
+  // Totais gerais (sempre do cronológico mais recente)
+  const totOriginal = enriched.reduce((s, i) => s + Number(i.originalTotal || 0), 0);
+  const totEnel = enriched.reduce((s, i) => s + Number(i.enelTotal || 0), 0);
+  const totTane = enriched.reduce((s, i) => s + Number(i.taneTotal || 0), 0);
+  const totSaved = enriched.reduce((s, i) => s + Number(i.savedAmount || 0), 0);
+  const totKwh = enriched.reduce((s, i) => s + i._kwhMonth, 0);
+
+  // O valor acumulado final é o total da soma cronológica
+  const maxAccumKwh = totKwh;
+  const maxAccumEconomy = totSaved;
+
+  // Atualizar cabeçalho de summary
+  byId('datatable-summary').innerHTML = `
+    <span class="dt-badge">${enriched.length} lançamento${enriched.length !== 1 ? 's' : ''}</span>
+    <span class="dt-badge green">Economia total: <strong>${currency(maxAccumEconomy)}</strong></span>
+    <span class="dt-badge blue">kWh acumulado: <strong>${decimal(maxAccumKwh)}</strong></span>
+  `;
+
+  // Renderizar linhas
+  tbody.innerHTML = enriched.map(invoice => {
+    const isActive = invoice.id === state.selectedInvoiceId;
+    const discPct = Number(invoice.discountPercent || 0);
+
     return `
-      <div class="invoice-row ${invoice.id === state.selectedInvoiceId ? 'active' : ''}">
-        <div>
-          <div class="invoice-row-title">Competência ${escapeHtml(formatMonthReference(invoice.competence))}</div>
-          <div class="invoice-row-subtitle">Vencimento ${escapeHtml(formatDateToBr(invoice.dueDate))}</div>
-        </div>
-        <div class="invoice-row-values">
-          <span>${escapeHtml(currency(invoice.taneTotal || 0))}</span>
-          <div class="invoice-row-actions">
-            <button data-invoice-open="${escapeHtml(invoice.id)}" class="mini-btn">Abrir</button>
-            <button data-invoice-edit="${escapeHtml(invoice.id)}" class="mini-btn">Editar</button>
-            <button data-invoice-delete="${escapeHtml(invoice.id)}" class="mini-btn danger-text">Excluir</button>
-          </div>
-        </div>
-      </div>
+      <tr class="dt-row${isActive ? ' dt-row-active' : ''}" data-invoice-id="${escapeHtml(invoice.id)}">
+        <td class="dt-cell-competence">
+          <strong>${escapeHtml(formatMonthReference(invoice.competence))}</strong>
+        </td>
+        <td>${escapeHtml(formatDateToBr(invoice.dueDate))}</td>
+        <td class="dt-num">${escapeHtml(currency(invoice.originalTotal || 0))}</td>
+        <td class="dt-num dt-tane"><strong>${escapeHtml(currency(invoice.taneTotal || 0))}</strong></td>
+        <td class="dt-num dt-economy">${escapeHtml(currency(invoice.savedAmount || 0))}</td>
+        <td class="dt-num dt-economy"><strong>${escapeHtml(currency(invoice._runningEconomy))}</strong></td>
+        <td class="dt-num">${escapeHtml(decimal(invoice._kwhMonth))} kWh</td>
+        <td class="dt-num">${escapeHtml(decimal(invoice._kwhAccum))} kWh</td>
+        <td class="dt-actions-cell">
+          <button data-invoice-open="${escapeHtml(invoice.id)}" class="dt-action-btn dt-btn-view" title="Visualizar fatura">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <button data-invoice-edit="${escapeHtml(invoice.id)}" class="dt-action-btn dt-btn-edit" title="Editar lançamento">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4zM14 6l4 4"/></svg>
+          </button>
+          <button data-invoice-delete="${escapeHtml(invoice.id)}" class="dt-action-btn dt-btn-delete" title="Excluir lançamento">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12M9 7V5h6v2M8 7l1 12h6l1-12M10 11v5M14 11v5"/></svg>
+          </button>
+        </td>
+      </tr>
     `;
   }).join('');
 
-  container.querySelectorAll('[data-invoice-open]').forEach(button => {
-    button.addEventListener('click', () => openInvoicePreview(button.dataset.invoiceOpen));
+  // Linha de totais
+  byId('datatable-totals').innerHTML = `
+    <div class="dt-totals-inner">
+      <span class="dt-total-label">Totais</span>
+      <span>Sem plano: <strong>${currency(totOriginal)}</strong></span>
+      <span>TANE: <strong>${currency(totTane)}</strong></span>
+      <span class="dt-total-economy">Economia: <strong>${currency(totSaved)}</strong></span>
+      <span>kWh total: <strong>${decimal(totKwh)}</strong></span>
+    </div>
+  `;
+
+  // Atualizar ícones de sort nos headers
+  document.querySelectorAll('#invoice-datatable thead th.dt-sortable').forEach(th => {
+    const icon = th.querySelector('.sort-icon');
+    th.classList.remove('dt-sort-asc', 'dt-sort-desc');
+    icon.textContent = '';
+    if (th.dataset.col === col) {
+      th.classList.add(dir === 'asc' ? 'dt-sort-asc' : 'dt-sort-desc');
+      icon.textContent = dir === 'asc' ? '↑' : '↓';
+    }
   });
 
-  container.querySelectorAll('[data-invoice-edit]').forEach(button => {
-    button.addEventListener('click', () => openInvoiceForm(button.dataset.invoiceEdit));
+  // Eventos de clique nas linhas
+  tbody.querySelectorAll('[data-invoice-open]').forEach(button => {
+    button.addEventListener('click', (e) => { e.stopPropagation(); openInvoicePreview(button.dataset.invoiceOpen); });
+  });
+  tbody.querySelectorAll('[data-invoice-edit]').forEach(button => {
+    button.addEventListener('click', (e) => { e.stopPropagation(); openInvoiceForm(button.dataset.invoiceEdit); });
+  });
+  tbody.querySelectorAll('[data-invoice-delete]').forEach(button => {
+    button.addEventListener('click', async (e) => { e.stopPropagation(); await deleteInvoice(button.dataset.invoiceDelete); });
   });
 
-  container.querySelectorAll('[data-invoice-delete]').forEach(button => {
-    button.addEventListener('click', async () => deleteInvoice(button.dataset.invoiceDelete));
+  // Clicar na linha abre o preview
+  tbody.querySelectorAll('.dt-row').forEach(row => {
+    row.addEventListener('click', () => openInvoicePreview(row.dataset.invoiceId));
   });
 }
+
+function attachDatatableSort() {
+  const table = byId('invoice-datatable');
+  if (!table) return;
+
+  table.querySelectorAll('thead th.dt-sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (invoiceTableState.sortCol === col) {
+        invoiceTableState.sortDir = invoiceTableState.sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        invoiceTableState.sortCol = col;
+        invoiceTableState.sortDir = 'desc';
+      }
+      renderInvoiceList();
+    });
+  });
+}
+
+
 
 function clearInvoiceForm() {
    byId('invoice-form').reset();
    byId('invoice-id').value = '';
    byId('invoice-form-title').textContent = 'Novo lançamento';
    byId('invoice-boleto-image-path').value = '';
+   byId('invoice-enel-total').value = '0';
+   byId('invoice-kwh-rate').value = '0.93';
    updateInvoiceImageName('');
    byId('invoice-items').innerHTML = '';
    byId('invoice-discount-percent').value = '25';
@@ -572,7 +738,9 @@ function populateInvoiceForm(invoice) {
    byId('invoice-period-end').value = invoice.periodEnd || '';
    byId('invoice-original-total').value = Number(invoice.originalTotal || 0);
    byId('invoice-tane-total').value = Number(invoice.taneTotal || 0);
+   byId('invoice-enel-total').value = Number(invoice.enelTotal || 0);
    byId('invoice-discount-percent').value = Number(invoice.discountPercent || 25);
+   byId('invoice-kwh-rate').value = Number(invoice.kwhRate || 0.93);
    byId('invoice-compensated-kwh').value = Number(invoice.compensatedKwh || 0);
    byId('invoice-boleto-image-path').value = invoice.boletoImagePath || '';
    updateInvoiceImageName(invoice.boletoImagePath || '');
@@ -696,7 +864,9 @@ function collectInvoicePayload() {
        : '',
      originalTotal: Number(byId('invoice-original-total').value || 0),
      taneTotal: Number(byId('invoice-tane-total').value || 0),
+     enelTotal: Number(byId('invoice-enel-total').value || 0),
      discountPercent: Number(byId('invoice-discount-percent').value || 0),
+     kwhRate: Number(byId('invoice-kwh-rate').value || 0.93),
      compensatedKwh: Number(byId('invoice-compensated-kwh').value || 0),
      boletoImagePath: byId('invoice-boleto-image-path').value.trim(),
      savedAmount: Number(byId('invoice-original-total').value || 0) - Number(byId('invoice-tane-total').value || 0),
@@ -730,7 +900,7 @@ function replaceMessageVariables(messageTemplate, client, invoice) {
      return '';
    }
 
-   const aggregate = getAggregateForClient(client.id);
+   const aggregate = getAggregateForClient(client.id, invoice.competence);
    const variables = {
      nome_cliente: client.name || 'cliente',
      valor_economizado_mes: currency(invoice.savedAmount || 0),
@@ -739,7 +909,7 @@ function replaceMessageVariables(messageTemplate, client, invoice) {
      valor_total_sem_desconto: currency(invoice.originalTotal || 0),
      valor_total_com_desconto: currency(invoice.taneTotal || 0),
      economia_acumulada: currency(aggregate.totalEconomy || 0),
-     kwh_acumulado: decimal(aggregate.totalSolarWallet || 0)
+     kwh_acumulado: decimal(invoice.accumulatedKwh != null && invoice.accumulatedKwh !== '' ? Number(invoice.accumulatedKwh) : (aggregate.totalSolarWallet || 0))
    };
 
    let message = messageTemplate;
@@ -858,14 +1028,21 @@ function updatePreview(invoiceId = '') {
    byId('preview-without-plan').textContent = currency(originalTotal);
    byId('preview-with-plan-left').textContent = currency(taneTotal);
    byId('preview-economy-left').textContent = currency(discountAmount);
-   byId('preview-total-economy').textContent = currency(aggregate.totalEconomy || 0);
-   byId('preview-solar-wallet').textContent = `${decimal(aggregate.totalSolarWallet || 0)} kWh`;
-   byId('preview-statement-without-plan').textContent = currency(originalTotal);
-   byId('preview-statement-with-plan').textContent = currency(taneTotal);
+   
+   // Para o preview da fatura, mostramos o acumulado ATÉ aquele mês
+   const aggUpToDate = getAggregateForClient(client.id, invoice.competence);
+   byId('preview-total-economy').textContent = currency(aggUpToDate.totalEconomy || 0);
+   byId('preview-solar-wallet').textContent = `${decimal(aggUpToDate.totalSolarWallet || 0)} kWh`;
+
+   const enelTotalValue = Number(invoice.enelTotal || 0);
+   const faturaCompletaSemDesconto = originalTotal + enelTotalValue;
+
+   byId('preview-statement-without-plan').textContent = currency(faturaCompletaSemDesconto);
+   byId('preview-statement-with-plan').textContent = currency(faturaCompletaSemDesconto - discountAmount);
    byId('preview-statement-economy').textContent = currency(discountAmount);
    byId('preview-discount-line').textContent = currency(discountAmount);
    byId('preview-black-total').textContent = currency(taneTotal);
-   byId('preview-enel-total').textContent = currency(originalTotal);
+   byId('preview-enel-total').textContent = currency(enelTotalValue);
   renderStatementItems(invoice.items || []);
   setPreviewFinalImage(invoice.boletoImagePath || '');
 }
@@ -1303,10 +1480,13 @@ function attachEvents() {
    [
      'invoice-original-total',
      'invoice-tane-total',
+     'invoice-enel-total',
      'invoice-discount-percent',
+     'invoice-kwh-rate',
      'invoice-compensated-kwh'
    ].forEach(id => {
      const element = byId(id);
+     if (!element) return;
      element.addEventListener('input', recalculateInvoiceForm);
      element.addEventListener('change', recalculateInvoiceForm);
    });
@@ -1402,6 +1582,7 @@ function init() {
   attachInputMasks();
   clearInvoiceForm();
   setInitialState();
+  attachDatatableSort();
 }
 
 init();
