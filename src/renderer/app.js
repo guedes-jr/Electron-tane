@@ -577,6 +577,7 @@ function populateInvoiceForm(invoice) {
    byId('invoice-tane-total').value = Number(invoice.taneTotal || 0);
    byId('invoice-discount-percent').value = Number(invoice.discountPercent || 25);
    byId('invoice-billed-kwh').value = Number(invoice.billedKwh || 0);
+   byId('invoice-compensated-kwh').value = Number(invoice.compensatedKwh || 0);
    byId('invoice-boleto-image-path').value = invoice.boletoImagePath || '';
    updateInvoiceImageName(invoice.boletoImagePath || '');
    byId('invoice-form-title').textContent = `Editar lançamento ${formatMonthReference(invoice.competence)}`;
@@ -699,6 +700,7 @@ function collectInvoicePayload() {
      taneTotal: Number(byId('invoice-tane-total').value || 0),
      discountPercent: Number(byId('invoice-discount-percent').value || 0),
      billedKwh: Number(byId('invoice-billed-kwh').value || 0),
+     compensatedKwh: Number(byId('invoice-compensated-kwh').value || 0),
      boletoImagePath: byId('invoice-boleto-image-path').value.trim(),
      savedAmount: Number(byId('invoice-original-total').value || 0) - Number(byId('invoice-tane-total').value || 0),
      items: collectInvoiceItems()
