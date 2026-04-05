@@ -434,11 +434,12 @@ function renderClientsList() {
 }
 
 function clearClientForm() {
-  byId('client-form').reset();
-  byId('client-id').value = '';
-  byId('client-distributor').value = 'ENEL';
-  byId('client-form-title').textContent = 'Novo cliente';
-  byId('save-client-btn').textContent = 'Salvar cliente';
+   byId('client-form').reset();
+   byId('client-id').value = '';
+   byId('client-distributor').value = 'ENEL';
+   byId('client-message').value = 'Parabéns Sr(a). {nome_cliente}, você economizou R$ {valor_economizado_mes} Nesse mês, que representa {desconto_lancamento}% sobre os créditos de energia utilizados.';
+   byId('client-form-title').textContent = 'Novo cliente';
+   byId('save-client-btn').textContent = 'Salvar cliente';
 }
 
 function populateClientForm(client) {
@@ -728,8 +729,36 @@ function openInvoiceForm(invoiceId = '') {
   showScreen('invoice-form-screen');
 }
 
+function replaceMessageVariables(messageTemplate, client, invoice) {
+   if (!messageTemplate) {
+     return '';
+   }
+
+   const aggregate = getAggregateForClient(client.id);
+   const variables = {
+     nome_cliente: client.name || 'cliente',
+     valor_economizado_mes: currency(invoice.savedAmount || 0),
+     desconto_lancamento: Number(invoice.discountPercent || 0).toFixed(2),
+     kwh_faturado_mes: decimal(invoice.billedKwh || 0),
+     valor_total_sem_desconto: currency(invoice.originalTotal || 0),
+     valor_total_com_desconto: currency(invoice.taneTotal || 0),
+     economia_acumulada: currency(aggregate.totalEconomy || 0),
+     kwh_acumulado: decimal(aggregate.totalSolarWallet || 0)
+   };
+
+   let message = messageTemplate;
+   Object.keys(variables).forEach(key => {
+     const regex = new RegExp(`\\{${key}\\}`, 'g');
+     message = message.replace(regex, variables[key]);
+   });
+
+   return message;
+}
+
 function getDefaultMessage(client, invoice) {
-  return client.message || `Parabéns ${client.name || 'cliente'}, você economizou ${currency(invoice.savedAmount || 0)} nesse mês.`;
+   const defaultTemplate = 'Parabéns Sr(a). {nome_cliente}, você economizou R$ {valor_economizado_mes} Nesse mês, que representa {desconto_lancamento}% sobre os créditos de energia utilizados.';
+   const template = client.message || defaultTemplate;
+   return replaceMessageVariables(template, client, invoice);
 }
 
 function renderStatementItems(items) {

@@ -127,10 +127,39 @@
                 <label for="client-address">Endereço</label>
                 <input id="client-address" type="text" />
               </div>
-              <div class="form-group form-group-full">
-                <label for="client-message">Mensagem padrão no template</label>
-                <textarea id="client-message" rows="4"></textarea>
-              </div>
+               <div class="form-group form-group-full">
+                 <label for="client-message">Mensagem padrão no template</label>
+                 <textarea id="client-message" rows="4"></textarea>
+                 <div class="variables-reference">
+                   <strong>Variáveis disponíveis:</strong>
+                   <div class="variables-list">
+                     <div class="variable-item">
+                       <code>{nome_cliente}</code> - Nome do cliente
+                     </div>
+                     <div class="variable-item">
+                       <code>{valor_economizado_mes}</code> - Valor economizado no mês atual
+                     </div>
+                     <div class="variable-item">
+                       <code>{desconto_lancamento}</code> - Percentual de desconto do lançamento
+                     </div>
+                     <div class="variable-item">
+                       <code>{kwh_faturado_mes}</code> - kWh faturado no mês
+                     </div>
+                     <div class="variable-item">
+                       <code>{valor_total_sem_desconto}</code> - Valor total sem desconto
+                     </div>
+                     <div class="variable-item">
+                       <code>{valor_total_com_desconto}</code> - Valor total com desconto
+                     </div>
+                     <div class="variable-item">
+                       <code>{economia_acumulada}</code> - Total economizado desde o início do plano
+                     </div>
+                     <div class="variable-item">
+                       <code>{kwh_acumulado}</code> - Total de kWh faturado desde o início do plano
+                     </div>
+                   </div>
+                 </div>
+               </div>
             </div>
 
             <div class="form-actions">

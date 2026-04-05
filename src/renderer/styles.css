@@ -957,7 +957,46 @@ textarea {
 }
 
 .form-group-full {
-  grid-column: 1 / -1;
+   grid-column: 1 / -1;
+}
+
+.variables-reference {
+   margin-top: 12px;
+   padding: 12px 14px;
+   background: var(--blue-soft);
+   border-radius: 8px;
+   border-left: 4px solid var(--blue);
+   font-size: 13px;
+}
+
+.variables-reference strong {
+   display: block;
+   margin-bottom: 8px;
+   color: var(--blue);
+}
+
+.variables-list {
+   display: grid;
+   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+   gap: 8px;
+}
+
+.variable-item {
+   padding: 6px 8px;
+   background: rgba(255, 255, 255, 0.6);
+   border-radius: 6px;
+   font-size: 12px;
+   line-height: 1.4;
+}
+
+.variable-item code {
+   background: var(--panel);
+   padding: 2px 6px;
+   border-radius: 4px;
+   font-family: 'Courier New', monospace;
+   color: var(--blue);
+   font-weight: 600;
+   margin-right: 4px;
 }
 
 .invoice-form-grid {
