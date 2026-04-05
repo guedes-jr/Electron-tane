@@ -248,10 +248,6 @@ function attachMaskedInput(inputId, formatter) {
 }
 
 function attachInputMasks() {
-  attachMaskedInput('invoice-competence', applyMonthMask);
-  attachMaskedInput('invoice-due-date', applyDateMask);
-  attachMaskedInput('invoice-period-start', applyDateMask);
-  attachMaskedInput('invoice-period-end', applyDateMask);
   attachMaskedInput('client-document', applyCpfCnpjMask);
 }
 
@@ -324,7 +320,7 @@ function getAggregateForClient(clientId) {
 
    return invoices.reduce((acc, invoice) => {
      acc.totalEconomy += Number(invoice.savedAmount || 0);
-     acc.totalSolarWallet += Number(invoice.billedKwh || 0);
+     acc.totalSolarWallet += Number(invoice.compensatedKwh || invoice.billedKwh || 0);
      return acc;
    }, {
      totalEconomy: 0,
@@ -570,14 +566,13 @@ function clearInvoiceForm() {
 
 function populateInvoiceForm(invoice) {
    byId('invoice-id').value = invoice.id || '';
-   byId('invoice-competence').value = formatMonthForInput(invoice.competence);
-   byId('invoice-due-date').value = formatDateForInput(invoice.dueDate);
-   byId('invoice-period-start').value = formatDateForInput(invoice.periodStart);
-   byId('invoice-period-end').value = formatDateForInput(invoice.periodEnd);
+   byId('invoice-competence').value = invoice.competence || '';
+   byId('invoice-due-date').value = invoice.dueDate || '';
+   byId('invoice-period-start').value = invoice.periodStart || '';
+   byId('invoice-period-end').value = invoice.periodEnd || '';
    byId('invoice-original-total').value = Number(invoice.originalTotal || 0);
    byId('invoice-tane-total').value = Number(invoice.taneTotal || 0);
    byId('invoice-discount-percent').value = Number(invoice.discountPercent || 25);
-   byId('invoice-billed-kwh').value = Number(invoice.billedKwh || 0);
    byId('invoice-compensated-kwh').value = Number(invoice.compensatedKwh || 0);
    byId('invoice-boleto-image-path').value = invoice.boletoImagePath || '';
    updateInvoiceImageName(invoice.boletoImagePath || '');
@@ -662,8 +657,10 @@ function recalculateInvoiceForm() {
    let originalTotal = Number(byId('invoice-original-total').value || 0);
    const discountPercent = Number(byId('invoice-discount-percent').value || 0);
 
-   // Prioriza o input "Total sem plano", mas usa soma de itens se vazio/zero
-   if (!originalTotal && itemsTotal) {
+   const hasValidItems = items.length > 0 && items.some(i => i.description || i.value !== 0);
+
+   // Se houver itens descritos, a soma deles deve determinar o total sem plano
+   if (hasValidItems) {
      originalTotal = itemsTotal;
      byId('invoice-original-total').value = Number(itemsTotal).toFixed(2);
    }
@@ -682,10 +679,10 @@ function recalculateInvoiceForm() {
 }
 
 function collectInvoicePayload() {
-   const competence = brMonthToIso(byId('invoice-competence').value);
-   const dueDate = brDateToIso(byId('invoice-due-date').value);
-   const periodStart = brDateToIso(byId('invoice-period-start').value);
-   const periodEnd = brDateToIso(byId('invoice-period-end').value);
+   const competence = byId('invoice-competence').value;
+   const dueDate = byId('invoice-due-date').value;
+   const periodStart = byId('invoice-period-start').value;
+   const periodEnd = byId('invoice-period-end').value;
 
    return {
      id: byId('invoice-id').value || undefined,
@@ -700,7 +697,6 @@ function collectInvoicePayload() {
      originalTotal: Number(byId('invoice-original-total').value || 0),
      taneTotal: Number(byId('invoice-tane-total').value || 0),
      discountPercent: Number(byId('invoice-discount-percent').value || 0),
-     billedKwh: Number(byId('invoice-billed-kwh').value || 0),
      compensatedKwh: Number(byId('invoice-compensated-kwh').value || 0),
      boletoImagePath: byId('invoice-boleto-image-path').value.trim(),
      savedAmount: Number(byId('invoice-original-total').value || 0) - Number(byId('invoice-tane-total').value || 0),
@@ -739,7 +735,7 @@ function replaceMessageVariables(messageTemplate, client, invoice) {
      nome_cliente: client.name || 'cliente',
      valor_economizado_mes: currency(invoice.savedAmount || 0),
      desconto_lancamento: Number(invoice.discountPercent || 0).toFixed(2),
-     kwh_faturado_mes: decimal(invoice.billedKwh || 0),
+     kwh_compensado_mes: decimal(invoice.compensatedKwh || 0),
      valor_total_sem_desconto: currency(invoice.originalTotal || 0),
      valor_total_com_desconto: currency(invoice.taneTotal || 0),
      economia_acumulada: currency(aggregate.totalEconomy || 0),
@@ -1308,7 +1304,7 @@ function attachEvents() {
      'invoice-original-total',
      'invoice-tane-total',
      'invoice-discount-percent',
-     'invoice-billed-kwh'
+     'invoice-compensated-kwh'
    ].forEach(id => {
      const element = byId(id);
      element.addEventListener('input', recalculateInvoiceForm);

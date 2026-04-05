@@ -2,6 +2,9 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+
+// Forçar visualização dos inputs type="date" em formato brasileiro (DD/MM/YYYY)
+app.commandLine.appendSwitch('lang', 'pt-BR');
 let XLSX = null;
 
 try {
@@ -214,7 +217,9 @@ async function buildPrintablePreview(win) {
        previewClone.style.maxWidth = '1050px';
        previewClone.style.width = '1050px';
        previewClone.style.boxShadow = 'none';
-       previewClone.style.borderRadius = '8px';
+       previewClone.style.border = 'none';
+       previewClone.style.borderRadius = '0';
+       previewClone.style.background = 'transparent';
        previewClone.style.overflow = 'visible';
 
        root.appendChild(previewClone);

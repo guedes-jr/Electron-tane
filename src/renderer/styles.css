@@ -5,8 +5,8 @@
   --border: #d9d9d9;
   --text: #222222;
   --muted: #6b7280;
-  --green: #53c292;
-  --green-dark: #3ea878;
+  --green: #58c79c;
+  --green-dark: #3bd090;
   --green-soft: #dff5ea;
   --blue: #173f84;
   --blue-soft: #eaf1ff;
@@ -423,7 +423,7 @@ textarea {
 
 .top-summary-item {
   text-align: center;
-  padding: 18px 10px;
+  padding: 24px 10px;
   position: relative;
 }
 
@@ -439,15 +439,15 @@ textarea {
 
 .top-summary-label {
   display: block;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.3px;
 }
 
 .top-summary-item strong {
   display: block;
-  margin-top: 4px;
-  font-size: 18px;
+  margin-top: 6px;
+  font-size: 24px;
 }
 
 .invoice-middle-grid {
@@ -472,9 +472,9 @@ textarea {
 .customer-info-card {
   grid-area: info;
   background: #ffffff;
-  padding: 14px;
-  font-size: 13px;
-  line-height: 1.5;
+  padding: 18px 16px;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
 .customer-info-card p {
@@ -493,9 +493,9 @@ textarea {
 }
 
 .pay-box-header {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .pay-values {
@@ -507,14 +507,14 @@ textarea {
 
 .old-price {
   color: #9a9a9a;
-  font-size: 18px;
+  font-size: 20px;
   text-decoration: line-through;
   font-weight: 700;
 }
 
 .new-price {
   color: var(--green-dark);
-  font-size: 32px;
+  font-size: 38px;
   font-weight: 800;
 }
 
@@ -528,7 +528,7 @@ textarea {
 }
 
 .due-date-label {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
   margin-bottom: 8px;
 }
@@ -537,9 +537,9 @@ textarea {
   background: #fff;
   border: 1px solid #7a7a7a;
   border-radius: 6px;
-  padding: 8px;
+  padding: 10px;
   text-align: center;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 700;
 }
 
@@ -583,9 +583,9 @@ textarea {
 .message-box {
   background: var(--green);
   color: #0f2f24;
-  padding: 14px 16px;
-  font-size: 13px;
-  line-height: 1.45;
+  padding: 18px 20px;
+  font-size: 15px;
+  line-height: 1.55;
   display: flex;
   align-items: center;
 }
@@ -612,51 +612,82 @@ textarea {
 .summary-card {
   background: #fff;
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 18px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 58px;
+  min-height: 72px;
   border: 1px solid #cfcfcf;
 }
 
 .summary-card span {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .summary-card strong {
-  font-size: 18px;
+  font-size: 22px;
 }
 
 .red-border {
-  border: 2px solid #e24646;
+  border: 1px solid #e24646;
 }
 
 .blue-border {
-  border: 2px solid var(--blue);
+  border: 1px solid var(--blue);
 }
 
 .green-border {
-  border: 2px solid var(--green-dark);
+  border: 1px solid var(--green-dark);
 }
 
 .gray-card {
-  background: #eeeeee;
+  background: #ffffff;
+}
+
+.custom-card {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 16px;
+}
+
+.custom-card .col-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.custom-card span {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.green-text {
+  color: var(--green-dark);
+  font-size: 22px !important;
 }
 
 .summary-warning {
-  background: #f3f3f3;
+  background: #ffffff;
   border: 1px solid #c8c8c8;
   border-radius: 10px;
   padding: 14px 16px;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 500;
   line-height: 1.4;
+  min-height: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .statement-column {
   display: flex;
+  position: relative;
 }
 
 .statement-card {
@@ -672,12 +703,12 @@ textarea {
   color: #fff;
   text-align: center;
   font-weight: 800;
-  font-size: 24px;
-  padding: 14px 18px;
+  font-size: 28px;
+  padding: 18px;
 }
 
 .statement-body {
-  padding: 10px 0 0;
+  padding: 14px 0 0;
 }
 
 .statement-line {
@@ -685,8 +716,8 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 4px 16px;
-  font-size: 13px;
+  padding: 6px 18px;
+  font-size: 15px;
 }
 
 .statement-line.highlighted {
@@ -700,13 +731,13 @@ textarea {
 }
 
 .statement-section-title {
-  padding: 14px 16px 6px;
-  font-size: 28px;
+  padding: 18px 18px 8px;
+  font-size: 32px;
   color: #333;
 }
 
 .statement-details {
-  padding: 0 16px 6px;
+  padding: 0 18px 8px;
 }
 
 .statement-detail-row {
@@ -714,8 +745,8 @@ textarea {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 1px 0;
-  font-size: 14px;
+  padding: 3px 0;
+  font-size: 15px;
 }
 
 .statement-detail-row span {
@@ -727,13 +758,13 @@ textarea {
 }
 
 .black-total-box {
-  margin: 14px auto 10px;
+  margin: 18px auto 14px;
   width: fit-content;
   background: #262626;
   color: #fff;
   border-radius: 8px;
-  padding: 10px 16px;
-  font-size: 16px;
+  padding: 12px 20px;
+  font-size: 18px;
   font-weight: 700;
 }
 
@@ -742,10 +773,10 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-top: 2px solid #555;
-  margin-top: 10px;
-  padding: 10px 16px 12px;
-  font-size: 16px;
+  border-top: 1px solid #999;
+  margin-top: 14px;
+  padding: 14px 18px 18px;
+  font-size: 22px;
   font-weight: 700;
 }
 
@@ -1321,7 +1352,7 @@ body.pdf-export-mode #pdf-print-root .preview-final-image {
 @media print {
   @page {
     size: A4;
-    margin: 6mm;
+    margin: 10mm 6mm;
   }
 
   html,

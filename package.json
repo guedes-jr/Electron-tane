@@ -1,15 +1,29 @@
 {
   "name": "tane-faturas",
   "version": "0.1.0",
-  "description": "App desktop para cadastro de clientes, lan\u00e7amento de faturas e exporta\u00e7\u00e3o em PDF.",
+  "description": "App desktop para cadastro de clientes, lançamento de faturas e exportação em PDF.",
   "main": "src/main.js",
+  "author": "Tane",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build:win": "electron-builder --win -c.extraMetadata.main=src/main.js"
   },
   "devDependencies": {
-    "electron": "^41.1.0"
+    "electron": "^41.1.0",
+    "electron-builder": "^26.8.1"
   },
   "dependencies": {
     "xlsx": "^0.18.5"
+  },
+  "build": {
+    "appId": "com.tane.app",
+    "productName": "Faturas TANE",
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }
